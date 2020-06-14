@@ -17,16 +17,16 @@ func main() {
 	defer cc.Close()
 
 	c := weatherpb.NewWeatherServiceClient(cc)
-	sum(c)
+	getCurrentWeather(c)
 }
 
-func sum(c weatherpb.WeatherServiceClient) {
+func getCurrentWeather(c weatherpb.WeatherServiceClient) {
 	req := &weatherpb.WeatherRequest{
-		Location: "Dublin",
+		Location: "dublin",
 	}
 	res, err := c.GetCurrentWeather(context.Background(), req)
 	if err != nil {
 		log.Fatalf("Error calling Sum RPC: %v", err)
 	}
-	log.Printf("Response: %d\n", res.Condition)
+	log.Printf("Response: %s\n", res.Condition)
 }
