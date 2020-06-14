@@ -2,10 +2,9 @@ package main
 
 import (
 	"context"
+	"distributed-tracing-otel/weatherpb"
 	"log"
 	"net"
-
-	"github.com/RicardoLinck/distributed-tracing-otel/weather/weatherpb"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -39,12 +38,12 @@ func main() {
 	s := grpc.NewServer()
 	server := &server{
 		locations: map[string]string{
-			"dublin": "rainy",
-			"galway": "sunny",
-			"limerick":"cloudy"
-		}
+			"dublin":   "rainy",
+			"galway":   "sunny",
+			"limerick": "cloudy",
+		},
 	}
-	weatherpb.RegisterWeatherServer(s, server)
+	weatherpb.RegisterWeatherServiceServer(s, server)
 
 	if err = s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
