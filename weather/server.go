@@ -2,10 +2,15 @@ package main
 
 import (
 	"context"
+	"distributed-tracing-otel/tracing"
 	"distributed-tracing-otel/weatherpb"
 	"log"
 	"net"
 
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/kv"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/plugin/grpctrace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,12 +21,18 @@ type server struct {
 }
 
 func (s *server) GetCurrentWeather(ctx context.Context, in *weatherpb.WeatherRequest) (*weatherpb.WeatherResponse, error) {
-	log.Printf("Sum rpc invoked with req: %v\n", in)
-
+	span := trace.SpanFromContext(ctx)
 	l, ok := s.locations[in.Location]
 	if !ok {
-		return nil, status.Error(codes.NotFound, "Location not found")
+		err := status.Error(codes.NotFound, "Location not found")
+		span.RecordError(ctx, err, trace.WithErrorStatus(codes.NotFound))
+		return nil, err
 	}
+
+	span.AddEvent(ctx, "Selected condition",
+		kv.String("condition", l),
+		kv.String("location", in.Location),
+	)
 
 	return &weatherpb.WeatherResponse{
 		Condition: l,
@@ -29,13 +40,14 @@ func (s *server) GetCurrentWeather(ctx context.Context, in *weatherpb.WeatherReq
 }
 
 func main() {
+	fn := tracing.InitTraceProvider("weather")
+	defer fn()
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer()
 	server := &server{
 		locations: map[string]string{
 			"dublin":   "rainy",
@@ -43,6 +55,7 @@ func main() {
 			"limerick": "cloudy",
 		},
 	}
+	s := grpc.NewServer(grpc.UnaryInterceptor(grpctrace.UnaryServerInterceptor(global.Tracer("weather"))))
 	weatherpb.RegisterWeatherServiceServer(s, server)
 
 	if err = s.Serve(lis); err != nil {
