@@ -34,8 +34,21 @@ func (s *server) GetCurrentWeather(ctx context.Context, in *weatherpb.WeatherReq
 		kv.String("location", in.Location),
 	)
 
+	t, err := getTemperature(ctx)
+
+	if err != nil {
+		err := status.Error(codes.Unknown, err.Error())
+		span.RecordError(ctx, err)
+		return nil, err
+	}
+
+	span.AddEvent(ctx, "Temperature received",
+		kv.Float64("temperature", t),
+	)
+
 	return &weatherpb.WeatherResponse{
-		Condition: l,
+		Condition:   l,
+		Temperature: t,
 	}, nil
 }
 
