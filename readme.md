@@ -33,3 +33,27 @@ docker run -d --name jaeger \
   -p 9411:9411 \
   jaegertracing/all-in-one:1.18
 ```
+
+### temperature
+
+```bash
+cd temperature
+dotnet build
+dotnet run
+```
+
+### weather
+
+```bash
+cd weather
+go build
+./weather
+```
+
+### client
+
+```bash
+cd client
+go build
+./client
+```
